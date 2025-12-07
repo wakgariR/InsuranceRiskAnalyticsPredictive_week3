@@ -4,7 +4,7 @@ import seaborn as sns
 import numpy as np
 
 # Set visualization styles
-sns.set_style("whitegrid")
+#sns.set_style("whitegrid")
 plt.rcParams['figure.dpi'] = 100
 plt.rcParams['figure.figsize'] = (10, 6)
 
@@ -201,3 +201,45 @@ def plot_loss_ratio_by_province(df: pd.DataFrame):
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     plt.show()
+
+
+def plot_box_plots_for_outliers_separate(df: pd.DataFrame, numerical_cols: list):
+    """
+    Generates a new, individual box plot figure for each key numerical column.
+    Uses context manager for localized style and explicitly clears the figure 
+    buffer to prevent overlap.
+    """
+    print("\n## 🔎 Outlier Detection: Individual Box Plots (Minimized & Gridless)")
+    
+    key_numerical_cols = ['TotalClaims', 'TotalPremium', 'SumInsured', 
+                          'ExcessSelected', 'kilowatts', 'VehicleAge',
+                          'CapitalOutstanding', 'cubiccapacity']
+    
+    cols_to_plot = [col for col in key_numerical_cols if col in numerical_cols]
+    
+    if not cols_to_plot:
+        print("No numerical columns found to plot.")
+        return
+
+    # Use the context manager to apply 'white' style only within this block
+    with sns.axes_style("white"):
+        for col in cols_to_plot:
+            # Create a new figure for each column, using a smaller size (e.g., 5x4)
+            plt.figure(figsize=(5, 4), dpi=100) 
+            
+            # Plotting the box plot 
+            sns.boxplot(y=df[col].dropna())
+            
+            # Use suptitle to ensure the title is on the figure itself, not just the axes
+            plt.suptitle(f'Box Plot for {col}', fontsize=12) 
+            plt.ylabel(col)
+            
+            # Ensure no grid lines are present on the axes just in case
+            plt.gca().yaxis.grid(False) 
+            
+            plt.tight_layout()
+            plt.show() 
+            
+            # CRITICAL ADDITION: Clear and close the figure buffer after displaying
+            plt.clf() 
+            plt.close()
