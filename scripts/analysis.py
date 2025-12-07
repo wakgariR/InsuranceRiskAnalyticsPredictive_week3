@@ -108,3 +108,96 @@ def plot_categorical_distributions(df: pd.DataFrame, categorical_cols: list):
 
 # Example usage:
 # plot_categorical_distributions(df_clean, categorical_features)
+
+def analyze_categorical_geography(df: pd.DataFrame, comparison_cols: list):
+    """
+    Analyzes the distribution of categorical columns across different Provinces.
+    """
+    print("\n--- Analyzing Categorical Trends Across Provinces ---")
+    
+    # Ensure the comparison columns exist
+    comparison_cols = [col for col in comparison_cols if col in df.columns]
+
+    for col in comparison_cols:
+        # Calculate the count of each category within each Province
+        province_counts = df.groupby('Province')[col].value_counts(normalize=True).mul(100).rename('Percentage').reset_index()
+
+        # Filter the top N categories to keep the visualization clear (e.g., top 5)
+        top_categories = df[col].value_counts().nlargest(5).index
+        province_counts_filtered = province_counts[province_counts[col].isin(top_categories)]
+
+        plt.figure(figsize=(12, 6))
+        
+        # Use a grouped bar chart (or stacked bar chart if preferred)
+        sns.barplot(
+            data=province_counts_filtered,
+            x='Province',
+            y='Percentage',
+            hue=col,
+            palette='tab20'
+        )
+        plt.title(f'Distribution of {col} by Province (Top 5 Categories)', fontsize=14)
+        plt.xlabel('Province')
+        plt.ylabel(f'Percentage of Policies (%)')
+        plt.xticks(rotation=45, ha='right')
+        plt.legend(title=col, bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
+        plt.show()
+
+def analyze_numerical_geography(df: pd.DataFrame, numerical_cols: list):
+    """
+    Analyzes the mean of numerical columns across different Provinces.
+    """
+    print("\n--- Analyzing Numerical Trends Across Provinces ---")
+    
+    # Ensure the comparison columns exist
+    numerical_cols = [col for col in numerical_cols if col in df.columns]
+
+    for col in numerical_cols:
+        # Calculate the mean of the numerical feature by Province
+        province_means = df.groupby('Province')[col].mean().sort_values(ascending=False).reset_index(name=f'Mean_{col}')
+
+        plt.figure(figsize=(10, 6))
+        
+        # Use a bar chart to compare means 
+        sns.barplot(
+            data=province_means,
+            x='Province',
+            y=f'Mean_{col}',
+            palette='coolwarm'
+        )
+        plt.title(f'Average {col} by Province', fontsize=14)
+        plt.xlabel('Province')
+        plt.ylabel(f'Mean {col}')
+        plt.xticks(rotation=45, ha='right')
+        plt.tight_layout()
+        plt.show()
+    
+def plot_loss_ratio_by_province(df: pd.DataFrame):
+    """Calculates and plots the Loss Ratio by Province."""
+    
+    # Aggregate Claims and Premium by Province
+    province_summary = df.groupby('Province').agg(
+        TotalClaims=('TotalClaims', 'sum'),
+        TotalPremium=('TotalPremium', 'sum')
+    ).reset_index()
+
+    # Calculate Loss Ratio
+    province_summary['LossRatio'] = province_summary['TotalClaims'] / province_summary['TotalPremium']
+    
+    # Sort for visualization
+    province_summary = province_summary.sort_values('LossRatio', ascending=False)
+
+    plt.figure(figsize=(10, 6))
+    sns.barplot(
+        data=province_summary,
+        x='Province',
+        y='LossRatio',
+        palette='Spectral' # Use a color palette to distinguish high/low risk
+    )
+    plt.title('Loss Ratio (Claims / Premium) by Province', fontsize=14)
+    plt.xlabel('Province')
+    plt.ylabel('Loss Ratio')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.show()
