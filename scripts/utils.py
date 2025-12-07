@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from typing import Literal
 
 # --- Data Cleaning and Feature Engineering ---
 def drop_unusable_column(df: pd.DataFrame) -> pd.DataFrame:
@@ -80,4 +81,38 @@ def create_vehicle_age_feature(df: pd.DataFrame) -> pd.DataFrame:
     else:
         print("Missing 'TransactionMonth' or 'RegistrationYear' to create VehicleAge.")
         
+    return df
+
+def parse_date_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Identifies columns likely containing date values (based on 'Date' or 'Month' 
+    in the name) and parses them to pandas datetime objects.
+
+    Args:
+        df: The input pandas DataFrame.
+
+    Returns:
+        The DataFrame with identified columns converted to datetime type.
+    """
+    date_cols = [
+        col for col in df.columns 
+        if any(keyword in col for keyword in ['Date', 'Month'])
+    ]
+    
+    parsed_count = 0
+    
+    print("--- Date Parsing ---")
+    for col in date_cols:
+        try:
+            # Attempt to convert the column to datetime
+            df[col] = pd.to_datetime(df[col], errors='coerce')
+            print(f"✅ Successfully converted '{col}' to datetime.")
+            parsed_count += 1
+        except Exception as e:
+            # This handles cases where the conversion fails unexpectedly
+            print(f"❌ Failed to convert '{col}'. Error: {e}")
+            
+    if parsed_count == 0:
+        print("No suitable date columns found or parsed.")
+    
     return df
