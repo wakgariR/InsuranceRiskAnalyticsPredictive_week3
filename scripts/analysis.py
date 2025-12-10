@@ -2,6 +2,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
+from statsmodels.stats.proportion import proportions_ztest
+from scipy import stats
 
 # Set visualization styles
 #sns.set_style("whitegrid")
@@ -243,3 +245,65 @@ def plot_box_plots_for_outliers_separate(df: pd.DataFrame, numerical_cols: list)
             # CRITICAL ADDITION: Clear and close the figure buffer after displaying
             plt.clf() 
             plt.close()
+
+def filter_gender_for_testing(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Filters the DataFrame to include only policies with specified Gender 
+    ('Male' or 'Female') for the A/B hypothesis test.
+    
+    Returns:
+        A new DataFrame containing only the specified gender policies.
+    """
+    
+    # Define the values to keep
+    specified_genders = ['Male', 'Female']
+    
+    # Filter the DataFrame
+    df_gender_test = df[df['Gender'].isin(specified_genders)].copy()
+    
+    original_count = len(df)
+    filtered_count = len(df_gender_test)
+    
+    print("--- Gender Data Filtering ---")
+    print(f"Original Policies Count: {original_count:,.0f}")
+    print(f"Filtered Policies Count (Male/Female only): {filtered_count:,.0f}")
+    print(f"Data retained: {filtered_count / original_count * 100:.2f}%")
+    
+    return df_gender_test
+
+def run_frequency_test(group_A, group_B, feature_name):
+    """Performs Z-test for Claim Frequency (proportions)."""
+    n_A = len(group_A)
+    n_B = len(group_B)
+    # Check for empty groups before proceeding
+    if n_A < 30 or n_B < 30: # Use 30 as a common minimum threshold
+        print(f"Skipping test for {feature_name}: Sample size too small (A={n_A}, B={n_B}).")
+        return None, None, np.nan, np.nan # Return NaN instead of running the unstable test
+    
+    successes_A = group_A['HasClaim'].sum()
+    successes_B = group_B['HasClaim'].sum()
+
+    stat, p_value = proportions_ztest(
+        count=[successes_A, successes_B], 
+        nobs=[n_A, n_B]
+    )
+    
+    freq_A = successes_A / n_A
+    freq_B = successes_B / n_B
+    
+    return stat, p_value, freq_A, freq_B
+
+def run_mean_test(group_A, group_B, metric_col, feature_name):
+    """Performs Two-Sample T-test for numerical metrics (Severity/Margin)."""
+    # Use Welch's t-test (equal_var=False) as variances are often unequal in real data
+    # Drop NaNs just in case, though they should be clean here
+    stat, p_value = stats.ttest_ind(
+        group_A[metric_col].dropna(), 
+        group_B[metric_col].dropna(), 
+        equal_var=False 
+    )
+    
+    mean_A = group_A[metric_col].mean()
+    mean_B = group_B[metric_col].mean()
+    
+    return stat, p_value, mean_A, mean_B
